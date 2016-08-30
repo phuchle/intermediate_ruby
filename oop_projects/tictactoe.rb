@@ -11,6 +11,10 @@
 # b _ _ _
 # c _ _ _
 # the above is a 2D array
+# the game ends when a player has connected a row or column
+# the game also ends when diagonal is filled
+# the game can end when all tiles are filled with no winner
+#
 
 class Tictactoe
   # attr_accessor :board, :player1, :player2
@@ -22,11 +26,18 @@ class Tictactoe
     @player2 = Player.new(player2)
     @player2.name = player2
 
-    @board = [
+    @demo_board = [
       %w(0 1 2 3),
       %w(1 _ _ _),
       %w(2 _ _ _),
       %w(3 _ _ _),
+    ]
+
+    @board = [
+    #    0 1 2
+      %w(_ _ _), # 0
+      %w(_ _ _), # 1
+      %w(_ _ _), # 2
     ]
   end
 
@@ -34,7 +45,35 @@ class Tictactoe
     puts @board[0].join(" ")
     puts @board[1].join(" ")
     puts @board[2].join(" ")
-    puts @board[3].join(" ")
+  end
+
+  def win?
+    rows = @board
+
+    columns = []
+
+    index = 0
+    while index < rows.length - 1
+      columns << rows.collect { |row| row[index] }
+      index += 1
+    end
+
+    diagonal1 = [ @board[0][0], @board[1][1], @board[2][2] ]
+    diagonal2 = [ @board[0][2], @board[1][1], @board[2][0] ]
+    diagonals = [diagonal1, diagonal2]
+
+    straight_lines = [rows, columns, diagonals] # how many dimensions is dis??
+
+    true if straight_lines.any? { |line| line.filled? }
+    false
+  end
+
+  def tie?
+    self.board.flatten.none? { |char| char == "_" }
+  end
+
+  def filled?
+    self.all? { |char| char == "x" || char == "o" }
   end
 
   def move(current_player, x_coord, y_coord)
@@ -64,30 +103,32 @@ puts "Please enter player two's name:"
 player2 = gets.chomp
 puts "Thank you.  Player two is #{player2}.\n\n"
 
-
-
 game = Tictactoe.new(player1, player2)
 
-puts game.board
-puts "Enter the board coordinates you wish to mark"
-puts "e.g. 1,3 marks the bottom left corner of the board."
+puts game.demo_board + "\n"
+puts "Enter the board coordinates you wish to mark.\n"
+puts "e.g. 1,3 marks the bottom left corner of the board.\n"
 
-winner = false
+game_ends = false
 
-until winner
-  case win
-    winner = true when game.board[1].all? {|x|}
-    # return winner when any row or column are all x or o
-    # winner depends on who places x or o
-    #
+until game_ends
   idx = 1
-  current_player = idx % 2 == 0 ? @player2 : @player1
+  current_player = idx.odd? ? @player1 : @player2
 
   puts "#{current_player}, enter the coordinates you wish to mark:"
   x_coord, y_coord = gets.chomp
 
-  game.move(current_player, x_coord, y_coord)
+  game.move(current_player, x_coord - 1, y_coord - 1) # since array starts at 0
+
+  if game.win?
+    puts "#{current_player} wins!"
+    game_ends = true
+  elsif game.tie?
+    puts "Nobody wins."
+    game_ends = true
+  end
 
   idx += 1
-
 end
+
+puts "Thank you for playing Tic-Tac-Toe!"
