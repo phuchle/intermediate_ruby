@@ -1,6 +1,12 @@
 require 'byebug'
 
 module Tooling
+  class NotAColor < ArgumentError ; end
+  class WrongInput < StandardError ; end
+  class RepeatGuess < StandardError ; end
+
+  COLORS = %w(red orange yellow green blue violet)
+
   def find_matches(guess, code)
    guess_copy = guess.dup
    code_copy = code.dup
@@ -27,14 +33,10 @@ module Tooling
 end
 
 class Mastermind
-  class NotAColor < ArgumentError ; end
-  class RepeatGuess < StandardError ; end
-
   include Tooling
-  COLORS = %w(red orange yellow green blue violet)
 
-  attr_accessor :guess_history
-  attr_reader :turns, :code
+  attr_accessor :guess_history, :code
+  attr_reader :turns
 
   def initialize
     self.intro
@@ -57,7 +59,7 @@ class Mastermind
     Gem.win_platform? ? (system "cls") : (system "clear")
 
     puts "==========================="
-    puts "  Welcome to Mastermind.\n"
+    puts "  Welcome to Mastermind"
     puts "==========================="
 
     #sleep 1
@@ -80,14 +82,28 @@ class Mastermind
     #sleep 1
     puts "There may be more than one of a color in the code."
     #sleep 1
-    puts "You will have 12 tries to guess the code.\n"
+    puts "The Codebreaker will have 12 tries to guess the code.\n"
     #sleep 1
     puts "The Mastermind will return a hint in the form of black and white pegs.\n"
     #sleep 2
-    puts "A black peg means you guessed a correct color in the correct place.\n"
+    puts "A black peg means a correct color in the correct place.\n"
     #sleep 2
-    puts "A white peg means you guessed a correct color but in the wrong place.\n"
+    puts "A white peg means a correct color but in the wrong place.\n"
     #sleep 3
+    puts "Would you like to be the Code Breaker or the Mastermind?\n"
+    # sleep 1
+
+    begin
+      puts "Please enter 'codebreaker' or 'mastermind' below: \n"
+      puts "Do not put quotation marks around the word."
+      @human_role = gets.chomp.strip.join("")
+      raise WrongInput if @human_role != "codebreaker" || @human_role != "mastermind"
+    rescue WrongInput
+      puts "Looks like you didn't enter 'codebreaker' or 'mastermind'.\n"
+      puts "Remember not to use quotation marks.\n\n"
+      retry
+    end
+
     puts "\n\n"
   end
 
@@ -157,7 +173,7 @@ class Mastermind
   end
 
   def give_history
-    puts "Your past guesses:\n"
+    puts "Past guesses:\n"
     #sleep 1
     self.guess_history.each do |guess, hint|
       puts "Guess: #{guess}"
@@ -191,7 +207,7 @@ class Mastermind
 
   def congratulations
     #sleep 1
-    Gem.win_platform? ? (system "cls") : (system "clear")
+    # Gem.win_platform? ? (system "cls") : (system "clear")
     10.times do
       puts "You guessed the correct code!\n\n"
       #sleep 0.25
@@ -201,7 +217,7 @@ class Mastermind
 
   def sorry
     #sleep 1
-    Gem.win_platform? ? (system "cls") : (system "clear")
+    # Gem.win_platform? ? (system "cls") : (system "clear")
     puts "I guess you are not a master mind!"
     #sleep 2
     self.reveal_code
@@ -215,8 +231,60 @@ class Mastermind
 
 end
 
-Player = Struct.new(:name, :guess)
+class Player
+  include Tooling
 
-#################
+  attr_accessor :name, :guess, :exact_match, :color_match
+  attr_reader :code
+
+  def initialize(name)
+    @name = name
+  end
+
+  def make_code
+    begin
+      puts "You can make a code from these colors: "
+      puts "#{COLORS.join(", ")}"
+      puts "Enter your code of four colors (separated by commas):"
+      Mastermind.code = gets.chomp.gsub(/\s+/, "").split(",").map!(&:downcase)
+      raise NotAColor if !(guess.all? { |color| COLORS.include?(color) })
+    rescue NotAColor
+      puts "\n\n"
+      puts "You entered something that wasn't a color!"
+      #sleep 1
+      puts "Remember to separate your colors with a comma."
+      retry
+    end
+  end
+
+  def give_hint
+    puts "The AI has guessed:"
+    ComputerAI.guess.join(", ")
+    puts "Enter your hints below"
+    puts "Exact matches:"
+    @exact_match = gets.chomp
+    puts "Color matches:"
+    @color_match = gets.chomp
+  end
+
+end
+
+class ComputerAI
+  attr_reader :guess
+
+  def initialize
+    @guess = []
+  end
+
+  def make_guess
+    4.times { @guess << COLORS[rand(5)] } if @guess.empty?
+    if @exact_match > 0
+      keep those colors and their place
+    elsif @color_match > 0
+      keep those colors
+    end
+  end
+end
+
 game = Mastermind.new
 game.play

@@ -1,3 +1,7 @@
+# to-do
+# raise errors for entering wrong coords, if a space is already marked
+# which methods are protected and which are private?
+
 class Array
   def filled?
     if self.all? { |char| char == "x"}
@@ -71,8 +75,8 @@ class Tictactoe
   end
 
   def move(current_player, x_coord, y_coord)
-      @board[x_coord][y_coord] = current_player == @player1 ? "x" : "o"
-      self.board
+    @board[x_coord][y_coord] = current_player == @player1 ? "x" : "o"
+    self.board
   end
 
   class Player
