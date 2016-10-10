@@ -85,6 +85,20 @@ class Hangman
       # outputs right or wrong
       # outputs how many turns left
       # out puts past right and wrong guesses
+      begin
+        puts "What's your guess?"
+        guess = gets.chomp.downcase
+        raise NotALetter if !guess.match(/[a-z]/)
+        raise RepeatGuess if #there is a repeat guess
+      rescue NotALetter
+        puts "You didn't enter a letter!\n
+              Try again below:\n"
+        retry
+      end
+
+      self.check_guess
+      self.give_hint
+      puts "You have #{@turns_remaining}"
       @turns_remaining -= 1
     end
   end
@@ -92,14 +106,29 @@ class Hangman
   def check_guess(letter)
     if @secret_word.chars.any? { |char| char == letter }
       @player.correct_guesses << letter
+      true
     else
       @player.wrong_guesses << letter
+      false
     end
+  end
+
+  def give_hint
+
   end
 
   def win?
     return true if @secret_word.chars.all? { |letter| @player.correct_guesses.include?(letter) }
     false
+  end
+
+  def congratulations
+    #sleep 1
+    Gem.win_platform? ? (system "cls") : (system "clear")
+    10.times do
+      puts "You guessed the correct word!\n\n"
+      #sleep 0.25
+    end
   end
 
   def list_save_files
