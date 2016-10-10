@@ -7,12 +7,12 @@
 #   use Dir.glob to list saves
 #   saves games => saves right & wrong guesses, the word,
 #   saves the player name, how many guesses they have left
-#   picks a word
-#   checks guesses against word
+#   -- picks a word
+#   -- checks guesses against word
 #   displays any guesses correct guesses in word
 #   displays wrong guesses
-#   displays how many guesses are left
-#   shows win or loss
+#   -- displays how many guesses are left
+#   -- shows win or loss
 # player makes guesses
 # player needs to be able to save at any point
 # player can type 'save' to save the game
@@ -21,24 +21,26 @@
 # errors
 #   did not enter a letter
 #   letter has already been guessed
+require 'byebug'
 require 'json'
 
 module Tools
   class NotALetter < ArgumentError ; end
   class RepeatGuess < StandardError ; end
   class RepeatName < StandardError ; end
-
 end
 
 class Hangman
+  include Tools
+
   attr_reader :secret_word, :concealed_secret_word
 
   def initialize
     @secret_word = self.select_word
-    @concealed_secret_word = Array.new(secret_word.length, "_")
+    @concealed_secret_word = Array.new(@secret_word.length, "_")
     self.intro
     self.instructions
-    @turns_remaining = "hangman".length
+    @turns_remaining = @secret_word.length + 3
   end
 
   def select_word
@@ -58,68 +60,74 @@ class Hangman
 
     #sleep 1
 
-    puts "Please enter your name:\n
-          This will be used to save your game."
+    puts "Please enter your name:\r\nThis will be used to save your game."
     player = gets.chomp
     @player = Player.new(player)
-    puts "\n\n"
     #sleep 1
-    puts "Thank you, #{player}."
-    puts "\n\n"
+    puts "Thank you, #{player}.\n\n"
     #sleep 1
   end
 
   def instructions
-    puts "
-      You will have 7 chances to guess the correct letters in the secret word.\n
-      If you guess all letters, you win!  If not, you lose :(\n
-      Good luck!
-    "
+    puts "You will have 7 chances to guess the correct letters in the secret word."
+    puts "If you guess all letters, you win!  If not, you lose. :("
+    puts "Good luck!\n\n"
   end
 
   def play
     until @turns_remaining == 0 || self.win?
-      # takes guess
-      # checks guess
-      # records guess in history
-      # outputs right or wrong
-      # outputs how many turns left
-      # out puts past right and wrong guesses
       begin
-        puts "What's your guess?"
-        guess = gets.chomp.downcase
-        raise NotALetter if !guess.match(/[a-z]/)
-        raise RepeatGuess if #there is a repeat guess
+        puts "What's your guess?\r"
+        @guess = gets.chomp.downcase.to_s
+        raise NotALetter if !@guess.match(/[a-z]/)
+        raise RepeatGuess if @player.correct_guesses.include?(@guess) ||
+                             @player.wrong_guesses.include?(@guess)
       rescue NotALetter
-        puts "You didn't enter a letter!\n
-              Try again below:\n"
+        puts "You didn't enter a letter!\nTry again below:\r\n"
+        retry
+      rescue RepeatGuess
+        puts "You already guessed that!\r"
         retry
       end
 
-      self.check_guess
-      self.give_hint
-      puts "You have #{@turns_remaining}"
+      self.store_guess(@guess)
+      self.give_hint(@guess)
+
       @turns_remaining -= 1
+      puts "You have #{@turns_remaining} turns remaining.\n\n"
+
+      if self.win?
+        self.congratulations
+      elsif @turns_remaining == 0
+        self.sorry
+      end
     end
   end
 
-  def check_guess(letter)
-    if @secret_word.chars.any? { |char| char == letter }
-      @player.correct_guesses << letter
-      true
-    else
-      @player.wrong_guesses << letter
-      false
-    end
+  def check_guess(guess)
+    @secret_word.chars.any? { |char| char == guess }
   end
 
-  def give_hint
+  def store_guess(guess)
+    self.check_guess(guess) ? @player.correct_guesses << guess :
+                              @player.wrong_guesses << guess
+  end
 
+  def give_hint(guess)
+    if self.check_guess(@guess)
+      @secret_word.chars.each_with_index do |letter, index|
+        @concealed_secret_word[index] = letter if letter == guess
+      end
+    end
+
+    puts "Secret Word: #{@concealed_secret_word.join(" ")}"
+    puts "Wrong Guesses: #{@player.wrong_guesses.join(", ")}"
   end
 
   def win?
-    return true if @secret_word.chars.all? { |letter| @player.correct_guesses.include?(letter) }
-    false
+    @secret_word.chars.all? do |letter|
+      @player.correct_guesses.include?(letter)
+    end
   end
 
   def congratulations
@@ -129,6 +137,15 @@ class Hangman
       puts "You guessed the correct word!\n\n"
       #sleep 0.25
     end
+  end
+
+  def sorry
+    #sleep 1
+    Gem.win_platform? ? (system "cls") : (system "clear")
+    puts "You lose :("
+    puts "The word was #{@secret_word}."
+    #sleep 2
+
   end
 
   def list_save_files
@@ -142,7 +159,6 @@ class Hangman
   def load_game(file)
     # unserialize
   end
-
 end
 
 class Player
@@ -154,7 +170,7 @@ class Player
     @wrong_guesses = []
   end
 
-  def guess(letter)
-
-  end
 end
+
+game = Hangman.new
+game.play
