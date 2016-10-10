@@ -31,12 +31,22 @@ module Tools
 end
 
 class Hangman
+  attr_reader :secret_word, :concealed_secret_word
+
   def initialize
-    SECRET_WORD = File.read(5desk.txt) # and find a random line
-    @concealed_secret_word = %w()
+    @secret_word = self.select_word
+    @concealed_secret_word = Array.new(secret_word.length, "_")
     self.intro
     self.instructions
     @turns_remaining = "hangman".length
+  end
+
+  def select_word
+    words_array = File.readlines("5desk.txt").select do |word|
+      word.length > 5 && word.length < 12
+    end
+
+    words_array.sample.gsub(/\r\n/, "")
   end
 
   def intro
