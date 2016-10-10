@@ -53,13 +53,13 @@ class Hangman
     Gem.win_platform? ? (system "cls") : (system "clear")
 
     puts "==========================="
-    puts "  Welcome to Hangman"
+    puts "    Welcome to Hangman"
     puts "==========================="
 
     #sleep 1
 
-    puts "Please enter your name:\n"
-    puts "This will be used to save your game."
+    puts "Please enter your name:\n
+          This will be used to save your game."
     player = gets.chomp
     @player = Player.new(player)
     puts "\n\n"
@@ -71,7 +71,9 @@ class Hangman
 
   def instructions
     puts "
-
+      You will have 7 chances to guess the correct letters in the secret word.\n
+      If you guess all letters, you win!  If not, you lose :(\n
+      Good luck!
     "
   end
 
@@ -88,7 +90,7 @@ class Hangman
   end
 
   def check_guess(letter)
-    if SECRET_WORD.chars.any? { |char| char == letter }
+    if @secret_word.chars.any? { |char| char == letter }
       @player.correct_guesses << letter
     else
       @player.wrong_guesses << letter
@@ -96,9 +98,10 @@ class Hangman
   end
 
   def win?
-    true if correct_guesses.join("") == SECRET_WORD
+    return true if @secret_word.chars.all? { |letter| @player.correct_guesses.include?(letter) }
     false
   end
+
   def list_save_files
     # use Dir.glob
   end
