@@ -9,18 +9,14 @@
 #   saves the player name, how many guesses they have left
 #   -- picks a word
 #   -- checks guesses against word
-#   displays any guesses correct guesses in word
-#   displays wrong guesses
+#   -- displays any guesses correct guesses in word
+#   -- displays wrong guesses
 #   -- displays how many guesses are left
 #   -- shows win or loss
 # player makes guesses
 # player needs to be able to save at any point
 # player can type 'save' to save the game
 
-
-# errors
-#   did not enter a letter
-#   letter has already been guessed
 require 'byebug'
 require 'json'
 
@@ -28,6 +24,8 @@ module Tools
   class NotALetter < ArgumentError ; end
   class RepeatGuess < StandardError ; end
   class RepeatName < StandardError ; end
+  class DuplicateFile < StandardError ; end
+  class WrongInput < StandardError ; end
 end
 
 class Hangman
@@ -77,16 +75,23 @@ class Hangman
   def play
     until @turns_remaining == 0 || self.win?
       begin
-        puts "What's your guess?\r"
+        puts "What's your guess?\n"
+        puts "Type \"save\" (without quotation marks) at any time to save the game."
+
         @guess = gets.chomp.downcase.to_s
-        raise NotALetter if !@guess.match(/[a-z]/)
+
+        self.save_game if @guess.downcase == "save"
+
+        raise NotALetter if @guess.downcase != "save" && !@guess.match(/[a-z]/)
+
         raise RepeatGuess if @player.correct_guesses.include?(@guess) ||
                              @player.wrong_guesses.include?(@guess)
+
       rescue NotALetter
         puts "You didn't enter a letter!\nTry again below:\r\n"
         retry
       rescue RepeatGuess
-        puts "You already guessed that!\r"
+        puts "You already guessed that!\n"
         retry
       end
 
@@ -109,8 +114,11 @@ class Hangman
   end
 
   def store_guess(guess)
-    self.check_guess(guess) ? @player.correct_guesses << guess :
-                              @player.wrong_guesses << guess
+    if self.check_guess(guess)
+      @player.correct_guesses << guess
+    else
+      @player.wrong_guesses << guess
+    end
   end
 
   def give_hint(guess)
@@ -133,6 +141,7 @@ class Hangman
   def congratulations
     #sleep 1
     Gem.win_platform? ? (system "cls") : (system "clear")
+
     10.times do
       puts "You guessed the correct word!\n\n"
       #sleep 0.25
@@ -142,6 +151,7 @@ class Hangman
   def sorry
     #sleep 1
     Gem.win_platform? ? (system "cls") : (system "clear")
+
     puts "You lose :("
     puts "The word was #{@secret_word}."
     #sleep 2
@@ -153,7 +163,62 @@ class Hangman
   end
 
   def save_game
-    # serializes game
+    file_name = "#{@player.name}_save.json"
+    save = self.to_json
+    save_dir = "save-files"
+
+    Dir.mkdir(save_dir) unless Dir.exist?(save_dir)
+
+    begin
+      if File.exist?("#{save_dir}/#{file_name}")
+        raise DuplicateFile
+      else
+        new_save = File.open("#{save_dir}/#{file_name}", "w")
+        new_save.write(save)
+        new_save.close
+      end
+
+    rescue DuplicateFile
+      puts "The save file you entered already exists!"
+
+      begin
+        puts "Do you want to replace the file with your new one? (yes/no)"
+
+        answer = gets.chomp
+        raise WrongInput if !answer.match(/yes|no/)
+      rescue WrongInput
+        retry
+      end
+
+      if answer == "yes"
+        new_save = File.open("#{save_dir}/#{file_name}", "w")
+        new_save.write(save)
+        new_save.close
+      else
+        puts "These are the current save files:"
+        puts Dir.glob("#{save_dir}/*.json")
+        puts "Please enter a new name to save your game."
+        answer = gets.chomp
+      end
+    end
+
+
+    if File.exist?("#{save_dir}/#{file_name}")
+      puts "The game has been successfully saved!"
+    else
+      puts "Something went wrong!"
+    end
+  end
+
+  def to_json
+    JSON.dump ({
+      :secret_word => @secret_word,
+      :concealed_secret_word => @concealed_secret_word,
+      :turns_remaining => @turns_remaining,
+      :player_name => @player.name,
+      :player_correct_guesses => @player.correct_guesses,
+      :player_wrong_guesses => @player.wrong_guesses
+    })
   end
 
   def load_game(file)
@@ -169,7 +234,6 @@ class Player
     @correct_guesses = []
     @wrong_guesses = []
   end
-
 end
 
 game = Hangman.new
