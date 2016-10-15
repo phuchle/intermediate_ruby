@@ -1,12 +1,12 @@
-# number of tries = "hangman".length
+# number of tries = "hangman".length + 3 (to make it easier)
 # secret_word = read a word from the 5desk.txt file
 # hangman:
 #   detects if there are any saves and asks to loads
 #   loads any previous games => continues to play
-#   need to list previous saves
-#   use Dir.glob to list saves
-#   saves games => saves right & wrong guesses, the word,
-#   saves the player name, how many guesses they have left
+#   -- need to list previous saves
+#   -- use Dir.glob to list saves
+#   -- saves games => saves right & wrong guesses, the word,
+#   --saves the player name, how many guesses they have left
 #   -- picks a word
 #   -- checks guesses against word
 #   -- displays any guesses correct guesses in word
@@ -22,6 +22,7 @@ require 'json'
 
 module Tools
   class NotALetter < ArgumentError ; end
+  class TooManyLetters < ArgumentError ; end
   class RepeatGuess < StandardError ; end
   class RepeatName < StandardError ; end
   class DuplicateFile < StandardError ; end
@@ -34,11 +35,11 @@ class Hangman
   attr_reader :secret_word, :concealed_secret_word
 
   def initialize
-    @secret_word = self.select_word
-    @concealed_secret_word = Array.new(@secret_word.length, "_")
-    self.intro
-    self.instructions
-    @turns_remaining = @secret_word.length + 3
+    @save_dir = "save-files"
+    
+    self.welcome_screen
+    self.loading_screen
+    # self.play
   end
 
   def select_word
@@ -49,15 +50,41 @@ class Hangman
     words_array.sample.gsub(/\r\n/, "")
   end
 
-  def intro
+  def welcome_screen
     Gem.win_platform? ? (system "cls") : (system "clear")
 
     puts "==========================="
     puts "    Welcome to Hangman"
-    puts "==========================="
+    puts "===========================\n\n"
 
     #sleep 1
+  end
 
+  def loading_screen
+    puts "Would you like to load a previous save? (y/n)"
+    load_save = gets.chomp
+
+    if load_save == "y"
+      puts "Enter a file name listed below to load previous save:"
+      self.list_save_files
+      file = gets.chomp
+
+      self.load_game(file)
+      self.instructions
+
+      puts "Welcome back, #{@player.name}"
+      self.give_hint(@guess)
+    elsif load_save == "n"
+      @secret_word = self.select_word
+      @concealed_secret_word = Array.new(@secret_word.length, "_")
+      @turns_remaining = @secret_word.length + 3
+
+      self.get_player_name
+      self.instructions
+    end
+  end
+
+  def get_player_name
     puts "Please enter your name:\r\nThis will be used to save your game."
     player = gets.chomp
     @player = Player.new(player)
@@ -67,34 +94,16 @@ class Hangman
   end
 
   def instructions
-    puts "You will have 7 chances to guess the correct letters in the secret word."
+    puts "You will have #{@turns_remaining} chances to guess the correct letters in the secret word."
     puts "If you guess all letters, you win!  If not, you lose. :("
+    puts "Type \"S\" (without quotation marks) at any time to save the game."
+    puts "Type \"L\" at any time to load a past game."
     puts "Good luck!\n\n"
   end
 
   def play
     until @turns_remaining == 0 || self.win?
-      begin
-        puts "What's your guess?\n"
-        puts "Type \"save\" (without quotation marks) at any time to save the game."
-
-        @guess = gets.chomp.downcase.to_s
-
-        self.save_game if @guess.downcase == "save"
-
-        raise NotALetter if @guess.downcase != "save" && !@guess.match(/[a-z]/)
-
-        raise RepeatGuess if @player.correct_guesses.include?(@guess) ||
-                             @player.wrong_guesses.include?(@guess)
-
-      rescue NotALetter
-        puts "You didn't enter a letter!\nTry again below:\r\n"
-        retry
-      rescue RepeatGuess
-        puts "You already guessed that!\n"
-        retry
-      end
-
+      self.get_guess
       self.store_guess(@guess)
       self.give_hint(@guess)
 
@@ -102,10 +111,34 @@ class Hangman
       puts "You have #{@turns_remaining} turns remaining.\n\n"
 
       if self.win?
-        self.congratulations
+        self.player_win_message
       elsif @turns_remaining == 0
-        self.sorry
+        self.player_lose_message
       end
+    end
+  end
+
+  def get_guess
+    begin
+      puts "What's your guess?\n"
+      @guess = gets.chomp
+
+      if @guess == "S"
+        self.save_game
+        self.successful_save?
+      end
+
+      @guess.downcase!
+
+      raise NotALetter if @guess.length > 1 && !@guess.match(/[a-zA-Z]/)
+      raise RepeatGuess if @player.correct_guesses.include?(@guess) ||
+                           @player.wrong_guesses.include?(@guess)
+    rescue NotALetter
+      puts "You didn't enter just one letter!\nTry again below:\r\n"
+      retry
+    rescue RepeatGuess
+      puts "You already guessed that!\n"
+      retry
     end
   end
 
@@ -138,7 +171,7 @@ class Hangman
     end
   end
 
-  def congratulations
+  def player_win_message
     #sleep 1
     Gem.win_platform? ? (system "cls") : (system "clear")
 
@@ -148,7 +181,7 @@ class Hangman
     end
   end
 
-  def sorry
+  def player_lose_message
     #sleep 1
     Gem.win_platform? ? (system "cls") : (system "clear")
 
@@ -159,27 +192,26 @@ class Hangman
   end
 
   def list_save_files
-    # use Dir.glob
+    puts Dir.glob("#{@save_dir}/*.json")
   end
 
   def save_game
-    file_name = "#{@player.name}_save.json"
-    save = self.to_json
-    save_dir = "save-files"
+    @file = "#{@player.name}.json"
+    serialized_instance_variables = self.serialize_instance_variables
 
-    Dir.mkdir(save_dir) unless Dir.exist?(save_dir)
+    Dir.mkdir(@save_dir) unless Dir.exist?(@save_dir)
 
     begin
-      if File.exist?("#{save_dir}/#{file_name}")
+      if File.exist?("#{@save_dir}/#{@file}")
         raise DuplicateFile
       else
-        new_save = File.open("#{save_dir}/#{file_name}", "w")
-        new_save.write(save)
+        new_save = File.open("#{@save_dir}/#{@file}", "w")
+        new_save.write(serialized_instance_variables)
         new_save.close
       end
 
     rescue DuplicateFile
-      puts "The save file you entered already exists!"
+      puts "A save file with your name already exists!"
 
       begin
         puts "Do you want to replace the file with your new one? (yes/no)"
@@ -191,38 +223,65 @@ class Hangman
       end
 
       if answer == "yes"
-        new_save = File.open("#{save_dir}/#{file_name}", "w")
-        new_save.write(save)
+        new_save = File.open("#{@save_dir}/#{@file}", "w")
+        new_save.write(serialized_instance_variables)
         new_save.close
       else
         puts "These are the current save files:"
-        puts Dir.glob("#{save_dir}/*.json")
+        self.list_save_files
+
         puts "Please enter a new name to save your game."
-        answer = gets.chomp
+        @player.name = gets.chomp
+        self.save_game
       end
-    end
-
-
-    if File.exist?("#{save_dir}/#{file_name}")
-      puts "The game has been successfully saved!"
-    else
-      puts "Something went wrong!"
     end
   end
 
-  def to_json
+  def successful_save?
+    if File.exist?("#{@save_dir}/#{@file}")
+      puts "The game has been successfully saved!\n\n"
+    else
+      puts "Something went wrong!\n\n"
+    end
+  end
+
+  def serialize_instance_variables
     JSON.dump ({
-      :secret_word => @secret_word,
-      :concealed_secret_word => @concealed_secret_word,
-      :turns_remaining => @turns_remaining,
-      :player_name => @player.name,
-      :player_correct_guesses => @player.correct_guesses,
-      :player_wrong_guesses => @player.wrong_guesses
+      :hangman => {
+        :secret_word => @secret_word,
+        :concealed_secret_word => @concealed_secret_word,
+        :turns_remaining => @turns_remaining  
+      },
+      :player => {
+        :name => @player.name,
+        :correct_guesses => @player.correct_guesses,
+        :wrong_guesses => @player.wrong_guesses
+      }
     })
   end
 
-  def load_game(file)
-    # unserialize
+  def append_file_extension(file)
+    file += ".json"
+  end
+
+  def load_game(file) #TODO file needs to be converted to append json 
+    game_instance_variables = File.open("#{@save_dir}/#{file}", "r") do |file|
+      file.read
+    end
+    parsed_game_instance_variables = JSON.parse(game_instance_variables)
+
+    # TODO @instance_variables_to_save showing up as nil 
+    hangman_variables = parsed_game_instance_variables["hangman"]
+    @secret_word = hangman_variables["secret_word"]
+    @concealed_secret_word = hangman_variables["concealed_secret_word"]
+    @turns_remaining = hangman_variables["turns_remaining"]
+
+    # below this line works
+    @player = Player.new(
+      parsed_game_instance_variables["player"]["name"]
+      )
+    @player.correct_guesses = parsed_game_instance_variables["player"]["correct_guesses"]
+    @player.wrong_guesses = parsed_game_instance_variables["player"]["wrong_guesses"]
   end
 end
 
