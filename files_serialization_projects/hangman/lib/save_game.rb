@@ -1,17 +1,16 @@
 require 'json'
 
 module SaveGame
-  player_save = "#{@player.name}.json"
   def save_game
     serialized_instance_variables = self.serialize_instance_variables
 
     Dir.mkdir("save-files") unless Dir.exist?("save-files")
 
     begin
-      if File.exist?("save-files/#{player_save}")
+      if File.exist?("save-files/#{@player.name}")
         raise DuplicateFile
       else
-        new_save = File.open("save-files/#{player_save}", "w")
+        new_save = File.open("save-files/#{@player.name}", "w")
         new_save.write(serialized_instance_variables)
         new_save.close
       end
@@ -36,7 +35,7 @@ module SaveGame
 
   def overwrite_save_file?(answer)
     if answer == "yes"
-      File.open("save-files/#{player_save}", "w") do |new_savesave|
+      File.open("save-files/#{@player.name}", "w") do |new_savesave|
         new_save.write(serialized_instance_variables)
       end
     else
@@ -44,13 +43,13 @@ module SaveGame
       self.list_save_files
 
       puts "Please enter a new name to save your game."
-      @player.name = gets.chomp
-      self.save_game
+      @player.name = gets.chomp + ".json"
+      self.save_game(@player.name)
     end
   end
 
   def successful_save?
-    if File.exist?("save-files/#{player_save}")
+    if File.exist?("save-files/#{@player.name}")
       puts "The game has been successfully saved!\n\n"
     else
       puts "Something went wrong!\n\n"
@@ -58,18 +57,16 @@ module SaveGame
   end
 
   def serialize_instance_variables
-    JSON.dump ({
-      :hangman => {
-        :secret_word => @secret_word,
-        :concealed_secret_word => @concealed_secret_word,
-        :turns_remaining => @turns_remaining  
-      },
-      :player => {
-        :name => @player.name,
-        :correct_guesses => @player.correct_guesses,
-        :wrong_guesses => @player.wrong_guesses
-      }
-    })
+    save_variables = {}
+    self.instance_variables.each do |var|
+      save_variables[var] = self.instance_variable_get(var)
+    end
+
+    @player.instance_variables.each do |var|
+      save_variables[var] = @player.instance_variable_get(var)
+    end
+
+    save_variables.to_json
   end
 
 end
