@@ -22,6 +22,9 @@ module EndGame
     puts "You lose :("
     puts "The word was #{@secret_word}."
     #sleep 2
+  end
 
+  def quit_game
+    puts "Thank you for playing Hangman!" 
   end
 end

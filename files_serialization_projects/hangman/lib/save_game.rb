@@ -7,10 +7,10 @@ module SaveGame
     Dir.mkdir("save-files") unless Dir.exist?("save-files")
 
     begin
-      if File.exist?("save-files/#{@player.name}")
+      if File.exist?("save-files/#{@player.name}.json")
         raise DuplicateFile
       else
-        new_save = File.open("save-files/#{@player.name}", "w")
+        new_save = File.open("save-files/#{@player.name}.json", "w")
         new_save.write(serialized_instance_variables)
         new_save.close
       end
@@ -35,7 +35,7 @@ module SaveGame
 
   def overwrite_save_file?(answer)
     if answer == "yes"
-      File.open("save-files/#{@player.name}", "w") do |new_savesave|
+      File.open("save-files/#{@player.name.json}", "w") do |new_savesave|
         new_save.write(serialized_instance_variables)
       end
     else
@@ -63,7 +63,7 @@ module SaveGame
     end
 
     @player.instance_variables.each do |var|
-      save_variables[var] = @player.instance_variable_get(var)
+      save_variables["player"][var] = @player.instance_variable_get(var)
     end
 
     save_variables.to_json

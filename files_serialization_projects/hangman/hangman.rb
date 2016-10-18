@@ -67,6 +67,11 @@ class Hangman
     end
   end
 
+  def load?
+
+  end
+
+
   def get_player_name
     puts "Please enter your name:\r\nThis will be used to save your game."
     player = gets.chomp

@@ -1,6 +1,10 @@
 require 'json'
 
 module LoadGame
+  def list_save_files
+    puts Dir.glob("save-files/*.json")
+  end
+  
   def load_game(file) #TODO file needs to be converted to append json 
     game_instance_variables = File.read("save-files/#{file}")
     parsed_game_instance_variables = JSON.parse(game_instance_variables)
