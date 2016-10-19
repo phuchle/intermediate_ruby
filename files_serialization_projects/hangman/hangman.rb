@@ -1,3 +1,8 @@
+# TODO
+# @guess is being saved as an instance variable but does it actually need to be?
+# same with @player
+# separate guess/check/hint methods into module
+
 require 'byebug'
 require './lib/save_game'
 require './lib/load_game.rb'
@@ -47,6 +52,11 @@ class Hangman
     puts "Would you like to load a previous save? (y/n)"
     load_save = gets.chomp
 
+    self.load?(load_save)
+
+  end
+
+  def load?(load_save)
     if load_save == "y"
       puts "Enter a file name listed below to load previous save:"
       self.list_save_files
@@ -58,19 +68,19 @@ class Hangman
       puts "Welcome back, #{@player.name}"
       self.give_hint(@guess)
     elsif load_save == "n"
-      @secret_word = self.select_word
-      @concealed_secret_word = Array.new(@secret_word.length, "_")
-      @turns_remaining = @secret_word.length + 3
-
+      self.create_secret_word_and_turns_remaining
       self.get_player_name
       self.display_instructions
+    else 
+      self.display_loading_screen
     end
   end
 
-  def load?
-
+  def create_secret_word_and_turns_remaining
+    @secret_word = self.select_word
+    @concealed_secret_word = Array.new(@secret_word.length, "_")
+    @turns_remaining = @secret_word.length + 3
   end
-
 
   def get_player_name
     puts "Please enter your name:\r\nThis will be used to save your game."
