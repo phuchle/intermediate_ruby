@@ -28,7 +28,7 @@ module SaveGame
         retry
       end
 
-      overwrite_save_file?(answer)
+      self.overwrite_save_file?(answer)
     end
 
   end
@@ -39,7 +39,6 @@ module SaveGame
         new_save.write(serialized_instance_variables)
       end
     else
-      puts "These are the current save files:"
       self.list_save_files
 
       puts "Please enter a new name to save your game."
@@ -49,7 +48,7 @@ module SaveGame
   end
 
   def successful_save?
-    if File.exist?("save-files/#{@player.name}")
+    if File.exist?("save-files/#{@player.name}.json")
       puts "The game has been successfully saved!\n\n"
     else
       puts "Something went wrong!\n\n"
@@ -57,16 +56,20 @@ module SaveGame
   end
 
   def serialize_instance_variables
-    save_variables = {}
+    save_variables = {
+      "hangman" => {},
+      "player" => {}
+    }
+
     self.instance_variables.each do |var|
-      save_variables[var] = self.instance_variable_get(var)
+      save_variables["hangman"][var] = self.instance_variable_get(var)
     end
 
     @player.instance_variables.each do |var|
       save_variables["player"][var] = @player.instance_variable_get(var)
     end
 
-    save_variables.to_json
+    JSON.pretty_generate(save_variables)
   end
 
 end
