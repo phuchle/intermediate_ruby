@@ -3,7 +3,19 @@ require 'byebug'
 require 'json'
 
 server = TCPServer.open(2000)
-verb, path, data, http_standard = "", "", "", ""
+# verb, path, data, http_standard = "", "", "", ""
+
+def set_GET_or_POST(status_line)
+	if status_line.include?("GET")
+		verb, path, http_standard = status_line.strip.split(" ")
+		make_GET_response(path, client) if File.exist?(path)
+	elsif status_line.include?("POST")
+		verb, data, http_standard = status_line.strip.split(" ")
+		make_POST_response(data, client)
+	else
+		client.print "HTTP/1.0 404 No File\r\n\r\n"
+	end
+end	
 
 def make_GET_response(path, client)
 	file = File.open(path)
@@ -44,19 +56,7 @@ loop {
 		status_line = request.join("")
 	end
 
-	if status_line.include?("GET")
-		verb, path, http_standard = status_line.strip.split(" ")
-	elsif status_line.include?("POST")
-		verb, data, http_standard = status_line.strip.split(" ")
-	end
-
-  if verb == "GET" && File.exist?(path) 
-		make_GET_response(path, client)
-	elsif verb == "POST"
-		make_POST_response(data, client)
-	else
-		client.print "HTTP/1.0 404 No File\r\n\r\n"
-	end
+	set_GET_or_POST(status_line)
 
 	client.print "Closing the connection. Bye!"
 	client.close
