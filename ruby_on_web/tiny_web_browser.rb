@@ -1,5 +1,7 @@
 require 'socket'
 require 'json'
+
+class NotGetOrPost < StandardError ; end
  
 host = 'localhost'   
 port = 2000                           
@@ -60,8 +62,15 @@ def show_response(desired_request, response)
 	end
 end
 
-puts "Would you like to GET or POST?"
-desired_request = gets.chomp
+begin
+	puts "Would you like to GET or POST?"
+	desired_request = gets.chomp
+
+	raise NotGetOrPost unless desired_request == "GET" || desired_request == "POST"
+rescue NotGetOrPost
+	puts "Enter 'GET' or 'POST'"
+	retry 
+end
 
 send_request(desired_request, path, socket, user_info)
 

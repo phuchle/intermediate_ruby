@@ -3,7 +3,7 @@ require 'json'
 
 server = TCPServer.open(2000)
 
-def set_GET_or_POST(status_line)
+def set_GET_or_POST(status_line, client)
 	if status_line.include?("GET")
 		verb, path, http_standard = status_line.strip.split(" ")
 		make_GET_response(path, client) if File.exist?(path)
@@ -54,7 +54,7 @@ loop {
 		status_line = request.join("")
 	end
 
-	set_GET_or_POST(status_line)
+	set_GET_or_POST(status_line, client)
 
 	client.print "Closing the connection. Bye!"
 	client.close
