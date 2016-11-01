@@ -1,6 +1,5 @@
 require 'socket'
 require 'json'
-require 'byebug'
  
 host = 'localhost'   
 port = 2000                           

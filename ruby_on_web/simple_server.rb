@@ -1,9 +1,7 @@
 require 'socket'
-require 'byebug'
 require 'json'
 
 server = TCPServer.open(2000)
-# verb, path, data, http_standard = "", "", "", ""
 
 def set_GET_or_POST(status_line)
 	if status_line.include?("GET")
