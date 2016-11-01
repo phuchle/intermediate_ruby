@@ -11,7 +11,7 @@ def set_GET_or_POST(status_line, client)
 		verb, data, http_standard = status_line.strip.split(" ")
 		make_POST_response(data, client)
 	else
-		client.print "HTTP/1.0 404 No File\r\n\r\n"
+		client.puts "HTTP/1.0 404 No File\r\n\r\n"
 	end
 end	
 
@@ -24,8 +24,8 @@ def make_GET_response(path, client)
 			"Content-Length: #{file.size}\r\n\r\n"
 			].join("\r\n")
 
-		client.print headers
-		client.print(file.readlines.join(""))
+		client.puts headers
+		client.puts(file.readlines.join(""))
 
 		file.close
 end
@@ -41,7 +41,7 @@ def make_POST_response(data, client)
 
 	thanks = File.open("thanks.html") { |file| file.readlines }
 
-	client.print(thanks.join("").gsub!("<%= yield %>\n", replaces_yield))
+	client.puts(thanks.join("").gsub!("<%= yield %>\n", replaces_yield))
 end
 
 loop { 
@@ -56,6 +56,6 @@ loop {
 
 	set_GET_or_POST(status_line, client)
 
-	client.print "Closing the connection. Bye!"
+	client.puts "Closing the connection. Bye!"
 	client.close
  }

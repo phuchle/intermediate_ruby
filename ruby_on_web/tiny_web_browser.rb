@@ -33,14 +33,14 @@ def make_POST_request(user_info, socket)
 		"From: #{user_info[:viking][:email]}",
 		"Content-Length: #{serialized_user_info.size}\r\n\r\n"
 	].join("\r\n")
-	socket.print(request)
-	socket.print(post_headers)
+	socket.puts(request)
+	socket.puts(post_headers)
 end
 
 def send_request(desired_request, path, socket, user_info)
 	if desired_request == "GET"
 		request = "GET #{path} HTTP/1.0\r\n\r\n"
-		socket.print(request)
+		socket.puts(request)
 	elsif desired_request == "POST"
 		get_info(user_info)
 		make_POST_request(user_info, socket)
