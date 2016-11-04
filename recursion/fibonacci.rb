@@ -11,12 +11,9 @@ def fibs(number)
 end
 
 def fibs_rec(number, sequence = [0,1])
-	if sequence.length == number
-		sequence
-	else
-		sequence << sequence.last(2).inject(:+)
-		fibs_rec(number, sequence)
-	end
+	return sequence if sequence.length == number
+	sequence << sequence.last(2).inject(:+)
+	fibs_rec(number, sequence)
 end
 
 p fibs(5)
