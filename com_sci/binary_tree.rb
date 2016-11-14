@@ -10,6 +10,7 @@ class Node
 end
 
 # assumes array is sorted, returns binary tree of Nodes
+# then refactor to handle data that isn't presorted can't be easily sorted
 def build_tree(array)
 
 end
